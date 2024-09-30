@@ -1,7 +1,12 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth import get_user_model
 
-CustomUser = get_user_model()
+from api.models import CustomUser
 
-admin.site.register(CustomUser, UserAdmin)
+
+@admin.register(CustomUser)
+class CustomUserAdmin(UserAdmin):
+    """Admin view for CustomUser model."""
+
+    fieldsets = UserAdmin.fieldsets  # Use default fieldsets
+    add_fieldsets = UserAdmin.add_fieldsets  # Use default add_fieldsets

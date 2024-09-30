@@ -33,16 +33,25 @@ class VillageSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'chiefdom']
 
     def create(self, validated_data):
-        chiefdom_name = validated_data.pop('chiefdom')
+        chiefdom_name = validated_data.pop('chiefdom').strip()
         chiefdom, created = Chiefdom.objects.get_or_create(name__iexact=chiefdom_name)
         validated_data['chiefdom'] = chiefdom
-        village, created = Village.objects.get_or_create(
-            name__iexact=validated_data['name'],
-            chiefdom=chiefdom,
-            defaults={'name': validated_data['name']}
-        )
-        return village
+        village_name = validated_data['name'].strip()
 
+        # Perform case-insensitive search for Village
+        village = Village.objects.filter(
+            name__iexact=village_name,
+            chiefdom=chiefdom
+        ).first()
+
+        if village:
+            return village
+        else:
+            # Create Village with exact name (preserving case)
+            return Village.objects.create(
+                name=village_name,
+                chiefdom=chiefdom
+            )
 
 
 class LocationSerializer(serializers.ModelSerializer):
@@ -65,8 +74,6 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
         many=True,
         required=False
     )
-
-    # Other fields and nested serializers as before...
 
     class Meta:
         model = FamilyMember
@@ -93,32 +100,54 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         spouses_data = validated_data.pop('spouses', [])
         chiefdom_name = validated_data.pop('chiefdom_of_origin', None)
-        village_name = validated_data.pop('village_of_origin', None)
+        village_data = validated_data.pop('village_of_origin', None)
         location_name = validated_data.pop('current_location', None)
 
+        # Handle chiefdom_of_origin
         if chiefdom_name:
+            chiefdom_name = chiefdom_name.strip()
             chiefdom, created = Chiefdom.objects.get_or_create(name__iexact=chiefdom_name)
             validated_data['chiefdom_of_origin'] = chiefdom
+        else:
+            chiefdom = None
 
-            # Handle village_of_origin
-        if village_name:
-            if 'chiefdom_of_origin' in validated_data:
-                chiefdom = validated_data['chiefdom_of_origin']
+        # Handle village_of_origin
+        if village_data:
+            village_name = village_data.get('name', '').strip()
+            village_chiefdom_name = village_data.get('chiefdom', '').strip()
+
+            # Determine the chiefdom to associate with the village
+            if village_chiefdom_name:
+                village_chiefdom, created = Chiefdom.objects.get_or_create(name__iexact=village_chiefdom_name)
             else:
-                chiefdom = None
-            if not chiefdom:
-                raise serializers.ValidationError("Chiefdom of origin is required to set village_of_origin.")
-            village, created = Village.objects.get_or_create(
-                name__iexact=village_name,
-                chiefdom=chiefdom
-            )
-            validated_data['village_of_origin'] = village
+                village_chiefdom = chiefdom  # Use chiefdom_of_origin if village chiefdom not provided
 
-            # Handle current_location
+            if not village_chiefdom:
+                raise serializers.ValidationError("Chiefdom is required to set village_of_origin.")
+
+            # Perform case-insensitive search for Village
+            village = Village.objects.filter(
+                name__iexact=village_name,
+                chiefdom=village_chiefdom
+            ).first()
+
+            if village:
+                validated_data['village_of_origin'] = village
+            else:
+                # Create Village with exact name (preserving case)
+                village = Village.objects.create(
+                    name=village_name,
+                    chiefdom=village_chiefdom
+                )
+                validated_data['village_of_origin'] = village
+
+        # Handle current_location
         if location_name:
+            location_name = location_name.strip()
             location, created = Location.objects.get_or_create(name__iexact=location_name)
             validated_data['current_location'] = location
 
+        # Create the FamilyMember instance
         family_member = super().create(validated_data)
         family_member.spouses.set(spouses_data)
 
@@ -127,33 +156,54 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         spouses_data = validated_data.pop('spouses', None)
         chiefdom_name = validated_data.pop('chiefdom_of_origin', None)
-        village_name = validated_data.pop('village_of_origin', None)
+        village_data = validated_data.pop('village_of_origin', None)
         location_name = validated_data.pop('current_location', None)
 
         # Handle chiefdom_of_origin
         if chiefdom_name is not None:
+            chiefdom_name = chiefdom_name.strip()
             chiefdom, created = Chiefdom.objects.get_or_create(name__iexact=chiefdom_name)
             validated_data['chiefdom_of_origin'] = chiefdom
+        else:
+            chiefdom = instance.chiefdom_of_origin
 
         # Handle village_of_origin
-        if village_name is not None:
-            if 'chiefdom_of_origin' in validated_data:
-                chiefdom = validated_data['chiefdom_of_origin']
+        if village_data is not None:
+            village_name = village_data.get('name', '').strip()
+            village_chiefdom_name = village_data.get('chiefdom', '').strip()
+
+            # Determine the chiefdom to associate with the village
+            if village_chiefdom_name:
+                village_chiefdom, created = Chiefdom.objects.get_or_create(name__iexact=village_chiefdom_name)
             else:
-                chiefdom = instance.chiefdom_of_origin
-            if not chiefdom:
-                raise serializers.ValidationError("Chiefdom of origin is required to set village_of_origin.")
-            village, created = Village.objects.get_or_create(
+                village_chiefdom = chiefdom  # Use chiefdom_of_origin if village chiefdom not provided
+
+            if not village_chiefdom:
+                raise serializers.ValidationError("Chiefdom is required to set village_of_origin.")
+
+            # Perform case-insensitive search for Village
+            village = Village.objects.filter(
                 name__iexact=village_name,
-                chiefdom=chiefdom
-            )
-            validated_data['village_of_origin'] = village
+                chiefdom=village_chiefdom
+            ).first()
+
+            if village:
+                validated_data['village_of_origin'] = village
+            else:
+                # Create Village with exact name (preserving case)
+                village = Village.objects.create(
+                    name=village_name,
+                    chiefdom=village_chiefdom
+                )
+                validated_data['village_of_origin'] = village
 
         # Handle current_location
         if location_name is not None:
+            location_name = location_name.strip()
             location, created = Location.objects.get_or_create(name__iexact=location_name)
             validated_data['current_location'] = location
 
+        # Update the FamilyMember instance
         family_member = super().update(instance, validated_data)
 
         if spouses_data is not None:
@@ -183,4 +233,3 @@ class FamilyTreeSerializer(serializers.ModelSerializer):
         model = FamilyTree
         fields = ["id", "name", "description", "owner", "members"]
         read_only_fields = ["owner"]
-

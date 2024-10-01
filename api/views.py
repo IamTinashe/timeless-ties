@@ -2,10 +2,12 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework import permissions, viewsets, filters, serializers, status
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import FamilyMember, FamilyTree, Chiefdom, Village, Location
+from .permissions import IsOwner
 from .serializers import (FamilyMemberSerializer, FamilyTreeSerializer,
                           UserSerializer, ChiefdomSerializer, VillageSerializer, LocationSerializer)
 
@@ -23,7 +25,7 @@ class FamilyMemberViewSet(viewsets.ModelViewSet):
     """ViewSet for CRUD operations on FamilyMember."""
     queryset = FamilyMember.objects.all()
     serializer_class = FamilyMemberSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
         return FamilyMember.objects.filter(user=self.request.user)

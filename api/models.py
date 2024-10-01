@@ -24,6 +24,7 @@ class FamilyMember(models.Model):
 
     first_name = models.CharField(null=True, max_length=50)
     last_name = models.CharField(null=True, max_length=50,  db_index=True)
+    photo = models.ImageField(upload_to='family_photos/', null=True, blank=True)
     gender = models.CharField(
         max_length=1,
         choices=GenderChoices.choices,
@@ -141,3 +142,18 @@ class Clan(models.Model):
 
     def __str__(self):
         return self.surname
+
+class Event(models.Model):
+    EVENT_TYPES = [
+        ('BIRTH', 'Birth'),
+        ('MARRIAGE', 'Marriage'),
+        ('DEATH', 'Death'),
+        # Add more as needed
+    ]
+    family_member = models.ForeignKey(FamilyMember, on_delete=models.CASCADE, related_name='events')
+    event_type = models.CharField(max_length=20, choices=EVENT_TYPES)
+    date = models.DateField()
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.get_event_type_display()} of {self.family_member}"

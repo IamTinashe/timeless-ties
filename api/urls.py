@@ -7,7 +7,7 @@ from .views import (
     ChiefdomViewSet,
     VillageViewSet,
     LocationViewSet,
-    FamilyTreeAPIView,
+    FamilyTreeAPIView, EventViewSet,
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -21,6 +21,7 @@ router.register(r"family-trees", FamilyTreeViewSet, basename="familytree")
 router.register(r'chiefdoms', ChiefdomViewSet, basename='chiefdom')
 router.register(r'villages', VillageViewSet, basename='village')
 router.register(r'locations', LocationViewSet, basename='location')
+router.register(r'events', EventViewSet, basename='event')
 
 urlpatterns = [
     path("", include(router.urls)),

@@ -5,7 +5,7 @@ from .models import (
     Chiefdom,
     Village,
     Location,
-    FamilyTree
+    FamilyTree, Event
 )
 
 User = get_user_model()
@@ -62,6 +62,7 @@ class LocationSerializer(serializers.ModelSerializer):
 
 class FamilyMemberSerializer(serializers.ModelSerializer):
     """Serializer for FamilyMember."""
+    photo = serializers.ImageField(required=False)
     children_from_mother = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     children_from_father = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     mother = serializers.PrimaryKeyRelatedField(queryset=FamilyMember.objects.all(), allow_null=True)
@@ -81,6 +82,7 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
             'id',
             'first_name',
             'last_name',
+            'photo',
             'gender',
             'date_of_birth',
             'date_of_death',
@@ -233,3 +235,9 @@ class FamilyTreeSerializer(serializers.ModelSerializer):
         model = FamilyTree
         fields = ["id", "name", "description", "owner", "members"]
         read_only_fields = ["owner"]
+
+
+class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = ['id', 'family_member', 'event_type', 'date', 'description']

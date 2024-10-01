@@ -30,7 +30,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "drf_yasg",
-    "debug_toolbar"
+    "debug_toolbar",
     "api",
 ]
 

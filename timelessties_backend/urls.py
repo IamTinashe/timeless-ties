@@ -23,5 +23,6 @@ urlpatterns = [
     path('api/', include('api.urls')),  # Include your API app's URLs
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),  # Swagger UI
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),            # ReDoc UI
+    path('__debug__/', include('debug_toolbar.urls')),
 ]
 

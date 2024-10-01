@@ -23,7 +23,7 @@ class FamilyMember(models.Model):
     """Model representing a family member."""
 
     first_name = models.CharField(null=True, max_length=50)
-    last_name = models.CharField(null=True, max_length=50)
+    last_name = models.CharField(null=True, max_length=50,  db_index=True)
     gender = models.CharField(
         max_length=1,
         choices=GenderChoices.choices,
@@ -63,7 +63,8 @@ class FamilyMember(models.Model):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name='family_members'
+        related_name='family_members',
+        db_index = True
     )
     village_of_origin = models.ForeignKey(
         'Village',

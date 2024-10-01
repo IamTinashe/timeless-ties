@@ -1,5 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Q
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from rest_framework import permissions, viewsets, filters, serializers, status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -22,16 +24,13 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class FamilyMemberViewSet(viewsets.ModelViewSet):
-    """ViewSet for CRUD operations on FamilyMember."""
-    queryset = FamilyMember.objects.all()
+    queryset = FamilyMember.objects.all().select_related('mother', 'father', 'chiefdom_of_origin', 'village_of_origin', 'current_location').prefetch_related('spouses')
     serializer_class = FamilyMemberSerializer
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [permissions.IsAuthenticated]
 
+    @method_decorator(cache_page(60 * 15))  # Cache for 15 minutes
     def get_queryset(self):
-        return FamilyMember.objects.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        return FamilyMember.objects.filter(user=self.request.user).select_related('mother', 'father', 'chiefdom_of_origin', 'village_of_origin', 'current_location').prefetch_related('spouses')
 
 
 class FamilyTreeViewSet(viewsets.ModelViewSet):
@@ -41,6 +40,7 @@ class FamilyTreeViewSet(viewsets.ModelViewSet):
     serializer_class = FamilyTreeSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    @method_decorator(cache_page(60 * 15))  # Cache for 15 minutes
     def get_queryset(self):
         return FamilyTree.objects.filter(owner=self.request.user)
 
@@ -75,6 +75,7 @@ class FamilyTreeAPIView(APIView):
     """API view to retrieve family tree by clan name (last_name)."""
     permission_classes = [permissions.IsAuthenticated]
 
+    @method_decorator(cache_page(60 * 15))  # Cache for 15 minutes
     def get(self, request, clan_name, format=None):
         # Use select_related to fetch related objects in a single query
         family_members = FamilyMember.objects.filter(
